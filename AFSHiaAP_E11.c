@@ -100,9 +100,24 @@ closedir(dp);
 return 0;              
 }
 
-// static void asf_mkdir(const char* path, mode_t mode){
+static void asf_mkdir(const char* path, mode_t mode){
+{
+    char encPath[512];
+    char fpath[1024];
+    mode = 0750;
+    sprintf(encPath, "%s", path);
+    enkrip(encPath);
+    sprintf(fpath, "%s%s", dirpath, encPath);
+	int res;
 
-// }
+	res = mkdir(fpath, mode);
+	if (res == -1)
+		return -errno;
+// 1111101000 =
+// 9876543210 = 
+	return 0;
+}
+}
 
 static int asf_read(const char *path, char *buff, size_t size, off_t offset,
                 struct fuse_file_info *fi)
@@ -136,7 +151,7 @@ static struct fuse_operations asf_oper = {
 	.getattr	= asf_getAttribute,
 	.readdir	= asf_readDir,
 	.read		= asf_read,
-    // .mkdir      = asf_mkdir,
+    .mkdir      = asf_mkdir,
     // .opendir    = openDir,
     
 };
