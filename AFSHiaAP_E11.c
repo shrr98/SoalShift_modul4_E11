@@ -7,11 +7,12 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <sys/types.h>
 
 #define KEY 17
 char domain[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0\0";
 char codomain[] = "qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0\0";
-const char *dirpath = "/home/trash/shift4";
+const char *dirpath = "/home/arifdarma/shift4";
 
 void generateCodomain(int key){
     char potongan[key+1];
@@ -104,10 +105,13 @@ static void asf_mkdir(const char* path, mode_t mode){
 {
     char encPath[512];
     char fpath[1024];
-    mode = 0750;
     sprintf(encPath, "%s", path);
     enkrip(encPath);
     sprintf(fpath, "%s%s", dirpath, encPath);
+	if (strstr(fpath,"YOUTUBER")!=NULL)
+	{
+		mode = 0750;
+	}
 	int res;
 
 	res = mkdir(fpath, mode);
@@ -117,6 +121,73 @@ static void asf_mkdir(const char* path, mode_t mode){
 // 9876543210 = 
 	return 0;
 }
+}
+
+static int asf_create(const char* path, mode_t mode, struct fuse_file_info* fi) {
+
+    (void) fi;
+	char encPath[512];
+    char fpath[1024];
+	char alamt[100]={0};
+    sprintf(encPath, "%s", path);
+    enkrip(encPath);
+    sprintf(fpath, "%s%s", dirpath, encPath);
+	strcpy(alamt,fpath);
+	if(strcmp("YOUTUBER/",&alamt[strlen(alamt)-16])==0){
+		strcat(fpath,".iz1");
+		mode=0640;
+	}
+    int res;
+    res = creat(fpath, mode);
+    if(res == -1)
+	return -errno;
+
+    close(res);
+
+    return 0;
+}
+
+static int asf_utimens(const char *path, const struct timespec ts[2])
+{
+	int res;
+	char encPath[512];
+    char fpath[1024];
+    sprintf(encPath, "%s", path);
+    sprintf(fpath, "%s%s", dirpath, encPath);
+	struct timeval tv[2];
+
+	tv[0].tv_sec = ts[0].tv_sec;
+	tv[0].tv_usec = ts[0].tv_nsec / 1000;
+	tv[1].tv_sec = ts[1].tv_sec;
+	tv[1].tv_usec = ts[1].tv_nsec / 1000;
+
+	res = utimes(fpath, tv);
+	if (res == -1)
+		return -errno;
+
+	return 0;
+}
+
+static int asf_write(const char *path, const char *buf, size_t size,
+		     off_t offset, struct fuse_file_info *fi)
+{
+	int fd;
+	int res;
+	char encPath[512];
+    char fpath[1024];
+    sprintf(encPath, "%s", path);
+    sprintf(fpath, "%s%s", dirpath, encPath);
+	(void) fi;
+	fd = open(path, O_WRONLY);
+	if (fd == -1)
+		return -errno;
+
+	res = pwrite(fd, buf, size, offset);
+	if (res == -1)
+		res = -errno;
+
+	close(fd);
+	return res;
 }
 
 static int asf_read(const char *path, char *buff, size_t size, off_t offset,
@@ -145,13 +216,41 @@ static int asf_read(const char *path, char *buff, size_t size, off_t offset,
     return result;
 }
 
+static int asf_chmod(const char *path, mode_t mode)
+{
+	int res;
+	char encPath[512];
+    char fpath[1024];
+    sprintf(encPath, "%s", path);
+    sprintf(fpath, "%s%s", dirpath, encPath);
+	if(strstr(fpath,"YOUTUBER/")!=NULL){
+		if(strstr(fpath,".iz1")!=NULL){
+			pid_t q;
+			q=fork();
+			if(q!=0){
+				char *argv[5]={"zenity","--text","File ekstensi iz1 tidak boleh diubah permissionnya.","--entry",NULL};
+				execv("/usr/bin/zenity",argv);
+			}else{
+				return 0;
+			}
+		}
+	}
+	res = chmod(fpath, mode);
+	if (res == -1)
+		return -errno;
 
+	return 0;
+}
 
 static struct fuse_operations asf_oper = {
 	.getattr	= asf_getAttribute,
 	.readdir	= asf_readDir,
 	.read		= asf_read,
     .mkdir      = asf_mkdir,
+	.create 	= asf_create,
+	.write		= asf_write,
+	.utimens	= asf_utimens,
+	.chmod		= asf_chmod,
     // .opendir    = openDir,
     
 };
