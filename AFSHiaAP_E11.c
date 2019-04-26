@@ -45,7 +45,6 @@ void dekrip(char *nama){
 }
 
 static int asf_getAttribute(const char *path, struct stat *stbuf){
-    printf("GETATTR\n");
     if(strcmp(path, "..")==0 || strcmp(path, ".")==0) return 0;
     int res;
     char fpath[1024];
@@ -62,7 +61,6 @@ static int asf_getAttribute(const char *path, struct stat *stbuf){
 
 static int asf_readDir(const char *path, void *buf, fuse_fill_dir_t filler,
                         off_t offset, struct fuse_file_info *fi){
-printf("READDIR%s\n", path);
 if(strcmp(path, "..")==0 || strcmp(path, ".")==0) return 0;
 char fpath[1000];
 char encPath[512];
@@ -102,23 +100,25 @@ closedir(dp);
 return 0;              
 }
 
-static int openDir(const char *path, void *buf, fuse_fill_dir_t filler,
-                        off_t offset, struct fuse_file_info *fi)
-{
+// static void asf_mkdir(const char* path, mode_t mode){
 
-}
+// }
 
 static int asf_read(const char *path, char *buff, size_t size, off_t offset,
                 struct fuse_file_info *fi)
 {
-    printf("READ\n");
     if(strcmp(path, "..")==0 || strcmp(path, ".")==0) return 0;
     char fpath[1000];
+    char encPath[512];
+
+    sprintf(encPath, "%s", path);
+
+    enkrip(encPath);
     if(strcmp(path, "/")==0){
         path = dirpath;
         sprintf(fpath, "%s", path);
     }    
-    else sprintf(fpath, "%s%s", dirpath, path);
+    else sprintf(fpath, "%s%s", dirpath, encPath);
     int result = 0;
     int fd = 0;
     (void) fi;
@@ -132,7 +132,7 @@ static int asf_read(const char *path, char *buff, size_t size, off_t offset,
 
 
 
-static struct fuse_operations xmp_oper = {
+static struct fuse_operations asf_oper = {
 	.getattr	= asf_getAttribute,
 	.readdir	= asf_readDir,
 	.read		= asf_read,
@@ -150,5 +150,5 @@ int main(int argc, char** argv){
     // dekrip(ss);
     // printf("%s\n%s\n%s\n%s\n", domain, codomain, s, ss);
     umask(0);
-	return fuse_main(argc, argv, &xmp_oper, NULL);
+	return fuse_main(argc, argv, &asf_oper, NULL);
 }
